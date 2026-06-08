@@ -1,0 +1,18 @@
+﻿# Compiled files
+*.class
+target/
+
+# IDE files
+.vscode/
+.idea/
+*.iml
+
+# Log files
+*.log
+
+# Application properties with secrets
+application.properties
+
+# OS files
+.DS_Store
+Thumbs.db
