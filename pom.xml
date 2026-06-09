@@ -117,8 +117,6 @@
                 <configuration>
                     <source>21</source>
                     <target>21</target>
-                    <fork>true</fork>
-                    <executable>C:\Users\USER\.vscode\extensions\redhat.java-1.54.0-win32-x64\jre\21.0.10-win32-x86_64\bin\javac.exe</executable>
                 </configuration>
             </plugin>
         </plugins>
