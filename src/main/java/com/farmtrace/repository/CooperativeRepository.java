@@ -8,4 +8,6 @@ import java.util.UUID;
 
 @Repository
 public interface CooperativeRepository extends JpaRepository<Cooperative, UUID> {
+
+    boolean existsByName(String name);
 }

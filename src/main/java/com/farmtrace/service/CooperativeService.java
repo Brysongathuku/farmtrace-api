@@ -2,6 +2,8 @@ package com.farmtrace.service;
 
 import com.farmtrace.dto.request.CreateCooperativeRequest;
 import com.farmtrace.dto.response.CooperativeResponse;
+import com.farmtrace.exception.ConflictException;
+import com.farmtrace.exception.ResourceNotFoundException;
 import com.farmtrace.model.Cooperative;
 import com.farmtrace.repository.CooperativeRepository;
 import lombok.RequiredArgsConstructor;
@@ -19,25 +21,41 @@ public class CooperativeService {
 
     private final CooperativeRepository cooperativeRepository;
 
-    public List<CooperativeResponse> getAllCooperatives() {
-        return cooperativeRepository.findAll().stream()
-                .map(this::convertToResponse)
-                .collect(Collectors.toList());
-    }
+    public CooperativeResponse createCooperative(CreateCooperativeRequest request) {
+        if (cooperativeRepository.existsByName(request.getName())) {
+            throw new ConflictException("Cooperative with this name already exists");
+        }
 
-    public void createCooperative(CreateCooperativeRequest request) {
         Cooperative cooperative = Cooperative.builder()
                 .name(request.getName())
                 .region(request.getRegion())
                 .build();
-        cooperativeRepository.save(cooperative);
+
+        Cooperative saved = cooperativeRepository.save(cooperative);
+        return toResponse(saved);
+    }
+
+    public List<CooperativeResponse> getAllCooperatives() {
+        return cooperativeRepository.findAll()
+                .stream()
+                .map(this::toResponse)
+                .collect(Collectors.toList());
+    }
+
+    public CooperativeResponse getCooperativeById(UUID id) {
+        Cooperative cooperative = cooperativeRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Cooperative not found"));
+        return toResponse(cooperative);
     }
 
     public void deleteCooperative(UUID id) {
+        if (!cooperativeRepository.existsById(id)) {
+            throw new ResourceNotFoundException("Cooperative not found");
+        }
         cooperativeRepository.deleteById(id);
     }
 
-    private CooperativeResponse convertToResponse(Cooperative cooperative) {
+    private CooperativeResponse toResponse(Cooperative cooperative) {
         return CooperativeResponse.builder()
                 .id(cooperative.getId())
                 .name(cooperative.getName())

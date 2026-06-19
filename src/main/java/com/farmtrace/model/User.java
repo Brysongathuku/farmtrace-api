@@ -33,14 +33,22 @@ public class User implements UserDetails {
     @Column(nullable = false)
     private String passwordHash;
 
+    // ✅ ADDED: needed for clerks and admins (farmers store fullName in Farmer)
+    @Column(nullable = true)
+    private String fullName;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Role role;
 
-    // ✅ nullable — only FARMER users have a status
     @Enumerated(EnumType.STRING)
     @Column(nullable = true)
     private FarmerStatus status;
+
+    // ✅ ADDED: only CLERK users belong to a cooperative
+    @ManyToOne
+    @JoinColumn(name = "cooperative_id", nullable = true)
+    private Cooperative cooperative;
 
     @Column(nullable = false)
     @Builder.Default

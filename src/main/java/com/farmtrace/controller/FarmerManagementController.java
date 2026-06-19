@@ -1,10 +1,12 @@
 package com.farmtrace.controller;
 
 import com.farmtrace.dto.response.FarmerResponse;
+import com.farmtrace.model.User;
 import com.farmtrace.service.FarmerManagementService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -13,35 +15,32 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/farmers")
 @RequiredArgsConstructor
+@PreAuthorize("hasRole('CLERK')")
 public class FarmerManagementController {
 
     private final FarmerManagementService farmerManagementService;
 
-    // GET all farmers — CLERK and ADMIN only
+    // GET all farmers in the clerk's own cooperative
     @GetMapping
-    @PreAuthorize("hasAnyRole('CLERK', 'ADMIN')")
-    public ResponseEntity<List<FarmerResponse>> getAllFarmers() {
-        return ResponseEntity.ok(farmerManagementService.getAllFarmers());
+    public ResponseEntity<List<FarmerResponse>> getAllFarmers(@AuthenticationPrincipal User currentUser) {
+        return ResponseEntity.ok(farmerManagementService.getAllFarmers(currentUser));
     }
 
-    // GET pending farmers — CLERK and ADMIN only
+    // GET pending farmers in the clerk's own cooperative
     @GetMapping("/pending")
-    @PreAuthorize("hasAnyRole('CLERK', 'ADMIN')")
-    public ResponseEntity<List<FarmerResponse>> getPendingFarmers() {
-        return ResponseEntity.ok(farmerManagementService.getPendingFarmers());
+    public ResponseEntity<List<FarmerResponse>> getPendingFarmers(@AuthenticationPrincipal User currentUser) {
+        return ResponseEntity.ok(farmerManagementService.getPendingFarmers(currentUser));
     }
 
-    // APPROVE farmer — CLERK and ADMIN only
+    // APPROVE farmer — must belong to the clerk's own cooperative
     @PutMapping("/{id}/approve")
-    @PreAuthorize("hasAnyRole('CLERK', 'ADMIN')")
-    public ResponseEntity<FarmerResponse> approveFarmer(@PathVariable UUID id) {
-        return ResponseEntity.ok(farmerManagementService.approveFarmer(id));
+    public ResponseEntity<FarmerResponse> approveFarmer(@PathVariable UUID id, @AuthenticationPrincipal User currentUser) {
+        return ResponseEntity.ok(farmerManagementService.approveFarmer(id, currentUser));
     }
 
-    // REJECT farmer — CLERK and ADMIN only
+    // REJECT farmer — must belong to the clerk's own cooperative
     @PutMapping("/{id}/reject")
-    @PreAuthorize("hasAnyRole('CLERK', 'ADMIN')")
-    public ResponseEntity<FarmerResponse> rejectFarmer(@PathVariable UUID id) {
-        return ResponseEntity.ok(farmerManagementService.rejectFarmer(id));
+    public ResponseEntity<FarmerResponse> rejectFarmer(@PathVariable UUID id, @AuthenticationPrincipal User currentUser) {
+        return ResponseEntity.ok(farmerManagementService.rejectFarmer(id, currentUser));
     }
 }

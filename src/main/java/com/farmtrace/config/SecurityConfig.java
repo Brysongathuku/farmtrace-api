@@ -37,8 +37,6 @@ public class SecurityConfig {
                                 "/api/auth/register",
                                 "/api/auth/login",
                                 "/api/auth/verify-email",
-                                "/api/auth/hash", //Temporary endpoint for generating password hashes
-                            
                                 "/api/cooperatives"
                         ).permitAll()
                         .anyRequest().authenticated()

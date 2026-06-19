@@ -12,7 +12,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -47,11 +46,5 @@ public class AuthController {
             @AuthenticationPrincipal User currentUser) {
         authService.changePassword(currentUser, request);
         return ResponseEntity.ok(new ApiResponse("Password updated."));
-    }
-
-    // ✅ TEMPORARY: generate BCrypt hash — DELETE after use
-    @GetMapping("/hash")
-    public ResponseEntity<String> generateHash() {
-        return ResponseEntity.ok(new BCryptPasswordEncoder().encode("password123"));
     }
 }

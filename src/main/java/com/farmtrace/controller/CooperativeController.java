@@ -28,10 +28,8 @@ public class CooperativeController {
 
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ApiResponse> createCooperative(@Valid @RequestBody CreateCooperativeRequest request) {
-        cooperativeService.createCooperative(request);
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(new ApiResponse("Cooperative created."));
+    public ResponseEntity<CooperativeResponse> createCooperative(@Valid @RequestBody CreateCooperativeRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(cooperativeService.createCooperative(request));
     }
 
     @DeleteMapping("/{id}")

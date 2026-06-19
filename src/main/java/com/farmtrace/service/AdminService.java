@@ -2,11 +2,12 @@ package com.farmtrace.service;
 
 import com.farmtrace.dto.request.CreateClerkRequest;
 import com.farmtrace.dto.response.UserResponse;
-import com.farmtrace.model.User;
-import com.farmtrace.enums.FarmerStatus;
-import com.farmtrace.enums.Role;
 import com.farmtrace.exception.ConflictException;
 import com.farmtrace.exception.ResourceNotFoundException;
+import com.farmtrace.enums.Role;
+import com.farmtrace.model.Cooperative;
+import com.farmtrace.model.User;
+import com.farmtrace.repository.CooperativeRepository;
 import com.farmtrace.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -23,6 +24,7 @@ import java.util.stream.Collectors;
 public class AdminService {
 
     private final UserRepository userRepository;
+    private final CooperativeRepository cooperativeRepository;
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
 
@@ -31,17 +33,27 @@ public class AdminService {
             throw new ConflictException("Email already in use");
         }
 
+        Cooperative cooperative = cooperativeRepository.findById(request.getCooperativeId())
+                .orElseThrow(() -> new ResourceNotFoundException("Cooperative not found"));
+
         User clerk = User.builder()
                 .email(request.getEmail())
+                .fullName(request.getFullName())
                 .passwordHash(passwordEncoder.encode(request.getDefaultPassword()))
                 .role(Role.CLERK)
-                .status(FarmerStatus.APPROVED)
+                .status(null)
+                .cooperative(cooperative)
                 .forcePasswordChange(true)
                 .build();
         userRepository.save(clerk);
 
-        // Send email with credentials
-        emailService.sendClerkCredentials(request.getEmail(), request.getDefaultPassword());
+        try {
+            emailService.sendClerkCredentials(request.getEmail(), request.getDefaultPassword());
+        } catch (Exception e) {
+            // ✅ Don't let a broken mail server block clerk creation — log and move on.
+            // Re-enable strict failure once Gmail App Password is configured.
+            System.err.println("⚠️ Failed to email clerk credentials: " + e.getMessage());
+        }
     }
 
     public List<UserResponse> getAllClerks() {
@@ -60,9 +72,10 @@ public class AdminService {
         return UserResponse.builder()
                 .id(user.getId())
                 .email(user.getEmail())
-                .name(user.getEmail())  // ← CHANGED: using email instead of fullName
+                .fullName(user.getFullName())
                 .role(user.getRole().name())
-                .status(user.getStatus().name())
+                .status(user.getStatus() != null ? user.getStatus().name() : null)
+                .cooperativeName(user.getCooperative() != null ? user.getCooperative().getName() : null)
                 .build();
     }
 }

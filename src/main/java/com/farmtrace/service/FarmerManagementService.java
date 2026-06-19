@@ -3,8 +3,10 @@ package com.farmtrace.service;
 import com.farmtrace.dto.response.FarmerResponse;
 import com.farmtrace.enums.FarmerStatus;
 import com.farmtrace.exception.BadRequestException;
+import com.farmtrace.exception.ForbiddenException;
 import com.farmtrace.exception.ResourceNotFoundException;
 import com.farmtrace.model.Farmer;
+import com.farmtrace.model.User;
 import com.farmtrace.repository.FarmerRepository;
 import com.farmtrace.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -23,26 +25,30 @@ public class FarmerManagementService {
     private final FarmerRepository farmerRepo;
     private final UserRepository userRepo;
 
-    // ── GET ALL FARMERS ──────────────────────────────────────────
-    public List<FarmerResponse> getAllFarmers() {
-        return farmerRepo.findAllFarmers()
+    // ── GET ALL FARMERS (scoped to clerk's cooperative) ───────────
+    public List<FarmerResponse> getAllFarmers(User currentUser) {
+        UUID cooperativeId = currentUser.getCooperative().getId();
+        return farmerRepo.findAllFarmersByCooperativeId(cooperativeId)
                 .stream()
                 .map(FarmerResponse::from)
                 .collect(Collectors.toList());
     }
 
-    // ── GET PENDING FARMERS ──────────────────────────────────────
-    public List<FarmerResponse> getPendingFarmers() {
-        return farmerRepo.findByUserStatus(FarmerStatus.PENDING)
+    // ── GET PENDING FARMERS (scoped to clerk's cooperative) ───────
+    public List<FarmerResponse> getPendingFarmers(User currentUser) {
+        UUID cooperativeId = currentUser.getCooperative().getId();
+        return farmerRepo.findByUserStatusAndCooperativeId(FarmerStatus.PENDING, cooperativeId)
                 .stream()
                 .map(FarmerResponse::from)
                 .collect(Collectors.toList());
     }
 
     // ── APPROVE FARMER ───────────────────────────────────────────
-    public FarmerResponse approveFarmer(UUID farmerId) {
+    public FarmerResponse approveFarmer(UUID farmerId, User currentUser) {
         Farmer farmer = farmerRepo.findById(farmerId)
                 .orElseThrow(() -> new ResourceNotFoundException("Farmer not found"));
+
+        validateSameCooperative(farmer, currentUser);
 
         if (farmer.getUser().getStatus() == FarmerStatus.APPROVED) {
             throw new BadRequestException("Farmer is already approved");
@@ -55,9 +61,11 @@ public class FarmerManagementService {
     }
 
     // ── REJECT FARMER ────────────────────────────────────────────
-    public FarmerResponse rejectFarmer(UUID farmerId) {
+    public FarmerResponse rejectFarmer(UUID farmerId, User currentUser) {
         Farmer farmer = farmerRepo.findById(farmerId)
                 .orElseThrow(() -> new ResourceNotFoundException("Farmer not found"));
+
+        validateSameCooperative(farmer, currentUser);
 
         if (farmer.getUser().getStatus() == FarmerStatus.REJECTED) {
             throw new BadRequestException("Farmer is already rejected");
@@ -67,5 +75,14 @@ public class FarmerManagementService {
         userRepo.save(farmer.getUser());
 
         return FarmerResponse.from(farmer);
+    }
+
+    // ── GUARD: clerk can only act on farmers in their own cooperative ──
+    private void validateSameCooperative(Farmer farmer, User currentUser) {
+        if (currentUser.getCooperative() == null
+                || farmer.getCooperative() == null
+                || !farmer.getCooperative().getId().equals(currentUser.getCooperative().getId())) {
+            throw new ForbiddenException("You can only manage farmers in your own cooperative");
+        }
     }
 }

@@ -21,11 +21,17 @@ public interface FarmerRepository extends JpaRepository<Farmer, UUID> {
 
     boolean existsByPhone(String phone);
 
-    // ✅ ADDED: find farmers by their user status
     @Query("SELECT f FROM Farmer f WHERE f.user.status = :status")
     List<Farmer> findByUserStatus(FarmerStatus status);
 
-    // ✅ ADDED: find all farmers
+    // ✅ ADDED: scoped to a specific cooperative
+    @Query("SELECT f FROM Farmer f WHERE f.user.status = :status AND f.cooperative.id = :cooperativeId")
+    List<Farmer> findByUserStatusAndCooperativeId(FarmerStatus status, UUID cooperativeId);
+
     @Query("SELECT f FROM Farmer f WHERE f.user.role = com.farmtrace.enums.Role.FARMER")
     List<Farmer> findAllFarmers();
+
+    // ✅ ADDED: scoped to a specific cooperative
+    @Query("SELECT f FROM Farmer f WHERE f.user.role = com.farmtrace.enums.Role.FARMER AND f.cooperative.id = :cooperativeId")
+    List<Farmer> findAllFarmersByCooperativeId(UUID cooperativeId);
 }
