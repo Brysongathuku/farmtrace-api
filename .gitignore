@@ -16,3 +16,11 @@ application.properties
 # OS files
 .DS_Store
 Thumbs.db
+application.properties
+local.properties
+target/
+.idea/
+*.iml
+.env
+.env*
+*.log
