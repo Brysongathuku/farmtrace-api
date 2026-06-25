@@ -1,4 +1,4 @@
-﻿# Compiled files
+# Compiled files
 *.class
 target/
 
@@ -11,12 +11,10 @@ target/
 *.log
 
 # Application properties with secrets
-application.properties
 
 # OS files
 .DS_Store
 Thumbs.db
-application.properties
 local.properties
 target/
 .idea/
