@@ -3,12 +3,15 @@ package com.farmtrace.dto.response;
 import com.farmtrace.enums.CropType;
 import com.farmtrace.enums.FarmerStatus;
 import com.farmtrace.model.Farmer;
+import com.farmtrace.model.FarmPhoto;
 import lombok.Builder;
 import lombok.Data;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Data
 @Builder
@@ -28,6 +31,7 @@ public class FarmerResponse {
     private BigDecimal gpsLongitude;
     private FarmerStatus status;
     private LocalDateTime registeredAt;
+    private List<String> photoUrls;
 
     public static FarmerResponse from(Farmer farmer) {
         return FarmerResponse.builder()
@@ -45,6 +49,9 @@ public class FarmerResponse {
                 .gpsLongitude(farmer.getGpsLongitude())
                 .status(farmer.getUser().getStatus())
                 .registeredAt(farmer.getRegisteredAt())
+                .photoUrls(farmer.getPhotos().stream()
+                        .map(FarmPhoto::getFileUrl)
+                        .collect(Collectors.toList()))
                 .build();
     }
 }
