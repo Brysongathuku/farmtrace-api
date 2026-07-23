@@ -40,7 +40,10 @@ public class FarmerManagementController {
 
     // REJECT farmer — must belong to the clerk's own cooperative
     @PutMapping("/{id}/reject")
-    public ResponseEntity<FarmerResponse> rejectFarmer(@PathVariable UUID id, @AuthenticationPrincipal User currentUser) {
-        return ResponseEntity.ok(farmerManagementService.rejectFarmer(id, currentUser));
+    public ResponseEntity<FarmerResponse> rejectFarmer(
+            @PathVariable UUID id,
+            @RequestParam String reason,
+            @AuthenticationPrincipal User currentUser) {
+        return ResponseEntity.ok(farmerManagementService.rejectFarmer(id, currentUser, reason));
     }
 }

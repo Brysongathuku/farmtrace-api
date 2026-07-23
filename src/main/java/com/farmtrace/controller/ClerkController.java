@@ -2,10 +2,12 @@ package com.farmtrace.controller;
 
 import com.farmtrace.dto.response.ApiResponse;
 import com.farmtrace.dto.response.FarmerResponse;
-import com.farmtrace.service.ClerkService;
+import com.farmtrace.model.User;
+import com.farmtrace.service.FarmerManagementService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -14,33 +16,33 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/clerk")
 @RequiredArgsConstructor
+@PreAuthorize("hasRole('CLERK')")
 public class ClerkController {
 
-    private final ClerkService clerkService;
+    private final FarmerManagementService farmerManagementService;
 
     @GetMapping("/farmers/pending")
-    @PreAuthorize("hasRole('CLERK')")
-    public ResponseEntity<List<FarmerResponse>> getPendingFarmers() {
-        return ResponseEntity.ok(clerkService.getPendingFarmers());
+    public ResponseEntity<List<FarmerResponse>> getPendingFarmers(@AuthenticationPrincipal User currentUser) {
+        return ResponseEntity.ok(farmerManagementService.getPendingFarmers(currentUser));
     }
 
     @GetMapping("/farmers")
-    @PreAuthorize("hasRole('CLERK')")
-    public ResponseEntity<List<FarmerResponse>> getAllFarmers() {
-        return ResponseEntity.ok(clerkService.getAllFarmers());
+    public ResponseEntity<List<FarmerResponse>> getAllFarmers(@AuthenticationPrincipal User currentUser) {
+        return ResponseEntity.ok(farmerManagementService.getAllFarmers(currentUser));
     }
 
     @PatchMapping("/farmers/{id}/approve")
-    @PreAuthorize("hasRole('CLERK')")
-    public ResponseEntity<ApiResponse> approveFarmer(@PathVariable UUID id) {
-        clerkService.approveFarmer(id);
+    public ResponseEntity<ApiResponse> approveFarmer(@PathVariable UUID id, @AuthenticationPrincipal User currentUser) {
+        farmerManagementService.approveFarmer(id, currentUser);
         return ResponseEntity.ok(new ApiResponse("Farmer approved."));
     }
 
     @PatchMapping("/farmers/{id}/reject")
-    @PreAuthorize("hasRole('CLERK')")
-    public ResponseEntity<ApiResponse> rejectFarmer(@PathVariable UUID id, @RequestParam String reason) {
-        clerkService.rejectFarmer(id, reason);
+    public ResponseEntity<ApiResponse> rejectFarmer(
+            @PathVariable UUID id,
+            @RequestParam String reason,
+            @AuthenticationPrincipal User currentUser) {
+        farmerManagementService.rejectFarmer(id, currentUser, reason);
         return ResponseEntity.ok(new ApiResponse("Farmer rejected."));
     }
 }

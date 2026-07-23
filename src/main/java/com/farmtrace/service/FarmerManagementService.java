@@ -43,6 +43,26 @@ public class FarmerManagementService {
                 .collect(Collectors.toList());
     }
 
+    // ── ADMIN: GET ALL FARMERS ACROSS ALL COOPERATIVES ────────────
+    // Optional filters: status and/or cooperativeId. Either can be null.
+    public List<FarmerResponse> getAllFarmersForAdmin(FarmerStatus status, UUID cooperativeId) {
+        List<Farmer> farmers;
+
+        if (status != null && cooperativeId != null) {
+            farmers = farmerRepo.findByUserStatusAndCooperativeId(status, cooperativeId);
+        } else if (status != null) {
+            farmers = farmerRepo.findByUserStatus(status);
+        } else if (cooperativeId != null) {
+            farmers = farmerRepo.findAllFarmersByCooperativeId(cooperativeId);
+        } else {
+            farmers = farmerRepo.findAllFarmers();
+        }
+
+        return farmers.stream()
+                .map(FarmerResponse::from)
+                .collect(Collectors.toList());
+    }
+
     // ── APPROVE FARMER ───────────────────────────────────────────
     public FarmerResponse approveFarmer(UUID farmerId, User currentUser) {
         Farmer farmer = farmerRepo.findById(farmerId)
@@ -61,7 +81,9 @@ public class FarmerManagementService {
     }
 
     // ── REJECT FARMER ────────────────────────────────────────────
-    public FarmerResponse rejectFarmer(UUID farmerId, User currentUser) {
+    // reason is accepted for API compatibility with the mobile app but not
+    // yet persisted — there's no rejection-reason column on Farmer/User yet.
+    public FarmerResponse rejectFarmer(UUID farmerId, User currentUser, String reason) {
         Farmer farmer = farmerRepo.findById(farmerId)
                 .orElseThrow(() -> new ResourceNotFoundException("Farmer not found"));
 
