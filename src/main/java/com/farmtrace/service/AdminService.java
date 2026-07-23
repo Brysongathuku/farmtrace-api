@@ -1,13 +1,16 @@
 package com.farmtrace.service;
 
 import com.farmtrace.dto.request.CreateClerkRequest;
+import com.farmtrace.dto.response.DashboardResponse;
 import com.farmtrace.dto.response.UserResponse;
 import com.farmtrace.exception.ConflictException;
 import com.farmtrace.exception.ResourceNotFoundException;
+import com.farmtrace.enums.FarmerStatus;
 import com.farmtrace.enums.Role;
 import com.farmtrace.model.Cooperative;
 import com.farmtrace.model.User;
 import com.farmtrace.repository.CooperativeRepository;
+import com.farmtrace.repository.FarmerRepository;
 import com.farmtrace.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -25,6 +28,7 @@ public class AdminService {
 
     private final UserRepository userRepository;
     private final CooperativeRepository cooperativeRepository;
+    private final FarmerRepository farmerRepository;
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
 
@@ -50,8 +54,6 @@ public class AdminService {
         try {
             emailService.sendClerkCredentials(request.getEmail(), request.getDefaultPassword());
         } catch (Exception e) {
-            // ✅ Don't let a broken mail server block clerk creation — log and move on.
-            // Re-enable strict failure once Gmail App Password is configured.
             System.err.println("⚠️ Failed to email clerk credentials: " + e.getMessage());
         }
     }
@@ -66,6 +68,17 @@ public class AdminService {
         User clerk = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Clerk not found"));
         userRepository.delete(clerk);
+    }
+
+    public DashboardResponse getDashboardStats() {
+        return DashboardResponse.builder()
+                .totalClerks(userRepository.countByRole(Role.CLERK))
+                .totalCooperatives(cooperativeRepository.count())
+                .approvedFarmers(farmerRepository.countByUserStatus(FarmerStatus.APPROVED))
+                .pendingFarmers(farmerRepository.countByUserStatus(FarmerStatus.PENDING))
+                .rejectedFarmers(farmerRepository.countByUserStatus(FarmerStatus.REJECTED))
+                .unverifiedFarmers(farmerRepository.countByUserStatus(FarmerStatus.UNVERIFIED))
+                .build();
     }
 
     private UserResponse convertToResponse(User user) {

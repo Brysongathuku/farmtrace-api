@@ -2,6 +2,7 @@ package com.farmtrace.controller;
 
 import com.farmtrace.dto.request.CreateClerkRequest;
 import com.farmtrace.dto.response.ApiResponse;
+import com.farmtrace.dto.response.DashboardResponse;
 import com.farmtrace.dto.response.FarmerResponse;
 import com.farmtrace.dto.response.UserResponse;
 import com.farmtrace.enums.FarmerStatus;
@@ -44,8 +45,6 @@ public class AdminController {
         return ResponseEntity.ok(new ApiResponse("Clerk removed."));
     }
 
-    // GET all farmers across all cooperatives (admin view-only), with
-    // optional status and/or cooperativeId filters.
     @GetMapping("/farmers")
     public ResponseEntity<List<FarmerResponse>> getAllFarmers(
             @RequestParam(required = false) FarmerStatus status,
@@ -53,5 +52,10 @@ public class AdminController {
         return ResponseEntity.ok(
                 farmerManagementService.getAllFarmersForAdmin(status, cooperativeId)
         );
+    }
+
+    @GetMapping("/dashboard")
+    public ResponseEntity<DashboardResponse> getDashboard() {
+        return ResponseEntity.ok(adminService.getDashboardStats());
     }
 }
