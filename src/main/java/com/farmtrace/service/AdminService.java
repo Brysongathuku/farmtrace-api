@@ -64,6 +64,12 @@ public class AdminService {
                 .collect(Collectors.toList());
     }
 
+    public List<UserResponse> getClerksByCooperative(UUID cooperativeId) {
+        return userRepository.findByRoleAndCooperativeId(Role.CLERK, cooperativeId).stream()
+                .map(this::convertToResponse)
+                .collect(Collectors.toList());
+    }
+
     public void deleteClerk(UUID id) {
         User clerk = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Clerk not found"));

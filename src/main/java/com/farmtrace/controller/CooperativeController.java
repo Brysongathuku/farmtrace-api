@@ -3,7 +3,11 @@ package com.farmtrace.controller;
 import com.farmtrace.dto.request.CreateCooperativeRequest;
 import com.farmtrace.dto.response.ApiResponse;
 import com.farmtrace.dto.response.CooperativeResponse;
+import com.farmtrace.dto.response.FarmerResponse;
+import com.farmtrace.dto.response.UserResponse;
+import com.farmtrace.service.AdminService;
 import com.farmtrace.service.CooperativeService;
+import com.farmtrace.service.FarmerManagementService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -20,10 +24,29 @@ import java.util.UUID;
 public class CooperativeController {
 
     private final CooperativeService cooperativeService;
+    private final FarmerManagementService farmerManagementService;
+    private final AdminService adminService;
 
     @GetMapping
     public ResponseEntity<List<CooperativeResponse>> getAllCooperatives() {
         return ResponseEntity.ok(cooperativeService.getAllCooperatives());
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<CooperativeResponse> getCooperativeById(@PathVariable UUID id) {
+        return ResponseEntity.ok(cooperativeService.getCooperativeById(id));
+    }
+
+    @GetMapping("/{id}/farmers")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<FarmerResponse>> getFarmersByCooperative(@PathVariable UUID id) {
+        return ResponseEntity.ok(farmerManagementService.getAllFarmersForAdmin(null, id));
+    }
+
+    @GetMapping("/{id}/clerks")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<UserResponse>> getClerksByCooperative(@PathVariable UUID id) {
+        return ResponseEntity.ok(adminService.getClerksByCooperative(id));
     }
 
     @PostMapping
