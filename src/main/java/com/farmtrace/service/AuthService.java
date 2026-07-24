@@ -36,8 +36,9 @@ public class AuthService {
     private final EmailService emailService;
     private final FileStorageService fileStorage;
     private final AuthenticationManager authManager;
+    private final AuditLogService auditLogService;
 
-    // ── REGISTER FARMER ──────────────────────────────────────────
+    // ── REGISTER FARMER ─────────────────────────────────────────
     public void registerFarmer(RegisterRequest req, List<MultipartFile> photos) {
 
         if (userRepo.existsByEmail(req.getEmail()))
@@ -111,6 +112,15 @@ public class AuthService {
 
         String token = jwtService.generateToken(user);
 
+        if (user.getRole() == Role.ADMIN) {
+            auditLogService.log(
+                    "ADMIN_LOGIN",
+                    user.getEmail(),
+                    "ADMIN",
+                    "Admin logged in"
+            );
+        }
+
         return AuthResponse.builder()
                 .token(token)
                 .role(user.getRole().name())
@@ -139,7 +149,7 @@ public class AuthService {
         tokenRepo.save(evt);
     }
 
-    // ── CHANGE PASSWORD ──────────────────────────────────────────
+    // ── CHANGE PASSWORD ───────────────────────────────────────────
     public void changePassword(User user, ChangePasswordRequest req) {
         user.setPasswordHash(passwordEncoder.encode(req.getNewPassword()));
         user.setForcePasswordChange(false);

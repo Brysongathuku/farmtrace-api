@@ -24,6 +24,7 @@ public class FarmerManagementService {
 
     private final FarmerRepository farmerRepo;
     private final UserRepository userRepo;
+    private final AuditLogService auditLogService;
 
     // ── GET ALL FARMERS (scoped to clerk's cooperative) ───────────
     public List<FarmerResponse> getAllFarmers(User currentUser) {
@@ -44,7 +45,6 @@ public class FarmerManagementService {
     }
 
     // ── ADMIN: GET ALL FARMERS ACROSS ALL COOPERATIVES ────────────
-    // Optional filters: status and/or cooperativeId. Either can be null.
     public List<FarmerResponse> getAllFarmersForAdmin(FarmerStatus status, UUID cooperativeId) {
         List<Farmer> farmers;
 
@@ -77,12 +77,17 @@ public class FarmerManagementService {
         farmer.getUser().setStatus(FarmerStatus.APPROVED);
         userRepo.save(farmer.getUser());
 
+        auditLogService.log(
+                "APPROVE_FARMER",
+                currentUser.getEmail(),
+                "FARMER",
+                "Approved farmer " + farmer.getFullName()
+        );
+
         return FarmerResponse.from(farmer);
     }
 
     // ── REJECT FARMER ────────────────────────────────────────────
-    // reason is accepted for API compatibility with the mobile app but not
-    // yet persisted — there's no rejection-reason column on Farmer/User yet.
     public FarmerResponse rejectFarmer(UUID farmerId, User currentUser, String reason) {
         Farmer farmer = farmerRepo.findById(farmerId)
                 .orElseThrow(() -> new ResourceNotFoundException("Farmer not found"));
@@ -95,6 +100,13 @@ public class FarmerManagementService {
 
         farmer.getUser().setStatus(FarmerStatus.REJECTED);
         userRepo.save(farmer.getUser());
+
+        auditLogService.log(
+                "REJECT_FARMER",
+                currentUser.getEmail(),
+                "FARMER",
+                "Rejected farmer " + farmer.getFullName() + " — reason: " + reason
+        );
 
         return FarmerResponse.from(farmer);
     }

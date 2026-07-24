@@ -5,8 +5,10 @@ import com.farmtrace.dto.response.CooperativeResponse;
 import com.farmtrace.exception.ConflictException;
 import com.farmtrace.exception.ResourceNotFoundException;
 import com.farmtrace.model.Cooperative;
+import com.farmtrace.model.User;
 import com.farmtrace.repository.CooperativeRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,6 +22,7 @@ import java.util.stream.Collectors;
 public class CooperativeService {
 
     private final CooperativeRepository cooperativeRepository;
+    private final AuditLogService auditLogService;
 
     public CooperativeResponse createCooperative(CreateCooperativeRequest request) {
         if (cooperativeRepository.existsByName(request.getName())) {
@@ -32,6 +35,14 @@ public class CooperativeService {
                 .build();
 
         Cooperative saved = cooperativeRepository.save(cooperative);
+
+        auditLogService.log(
+                "CREATE_COOPERATIVE",
+                getCurrentAdminEmail(),
+                "COOPERATIVE",
+                "Created cooperative " + saved.getName() + " (" + saved.getRegion() + ")"
+        );
+
         return toResponse(saved);
     }
 
@@ -49,9 +60,16 @@ public class CooperativeService {
     }
 
     public void deleteCooperative(UUID id) {
-        if (!cooperativeRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Cooperative not found");
-        }
+        Cooperative cooperative = cooperativeRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Cooperative not found"));
+
+        auditLogService.log(
+                "DELETE_COOPERATIVE",
+                getCurrentAdminEmail(),
+                "COOPERATIVE",
+                "Deleted cooperative " + cooperative.getName() + " (" + cooperative.getRegion() + ")"
+        );
+
         cooperativeRepository.deleteById(id);
     }
 
@@ -62,5 +80,13 @@ public class CooperativeService {
                 .region(cooperative.getRegion())
                 .createdAt(cooperative.getCreatedAt())
                 .build();
+    }
+
+    private String getCurrentAdminEmail() {
+        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        if (principal instanceof User user) {
+            return user.getEmail();
+        }
+        return "unknown";
     }
 }

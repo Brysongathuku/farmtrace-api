@@ -2,11 +2,13 @@ package com.farmtrace.controller;
 
 import com.farmtrace.dto.request.CreateClerkRequest;
 import com.farmtrace.dto.response.ApiResponse;
+import com.farmtrace.dto.response.AuditLogResponse;
 import com.farmtrace.dto.response.DashboardResponse;
 import com.farmtrace.dto.response.FarmerResponse;
 import com.farmtrace.dto.response.UserResponse;
 import com.farmtrace.enums.FarmerStatus;
 import com.farmtrace.service.AdminService;
+import com.farmtrace.service.AuditLogService;
 import com.farmtrace.service.FarmerManagementService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +28,7 @@ public class AdminController {
 
     private final AdminService adminService;
     private final FarmerManagementService farmerManagementService;
+    private final AuditLogService auditLogService;
 
     @PostMapping("/clerks")
     public ResponseEntity<ApiResponse> createClerk(@Valid @RequestBody CreateClerkRequest request) {
@@ -57,5 +60,14 @@ public class AdminController {
     @GetMapping("/dashboard")
     public ResponseEntity<DashboardResponse> getDashboard() {
         return ResponseEntity.ok(adminService.getDashboardStats());
+    }
+
+    @GetMapping("/audit-log")
+    public ResponseEntity<List<AuditLogResponse>> getAuditLog(
+            @RequestParam(required = false) String action) {
+        if (action != null && !action.isBlank()) {
+            return ResponseEntity.ok(auditLogService.getLogsByAction(action));
+        }
+        return ResponseEntity.ok(auditLogService.getAllLogs());
     }
 }

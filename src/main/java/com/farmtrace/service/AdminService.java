@@ -31,6 +31,7 @@ public class AdminService {
     private final FarmerRepository farmerRepository;
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
+    private final AuditLogService auditLogService;
 
     public void createClerk(CreateClerkRequest request) {
         if (userRepository.existsByEmail(request.getEmail())) {
@@ -50,6 +51,13 @@ public class AdminService {
                 .forcePasswordChange(true)
                 .build();
         userRepository.save(clerk);
+
+        auditLogService.log(
+                "CREATE_CLERK",
+                getCurrentAdminEmail(),
+                "CLERK",
+                "Created clerk account for " + clerk.getFullName() + " (" + clerk.getEmail() + ")"
+        );
 
         try {
             emailService.sendClerkCredentials(request.getEmail(), request.getDefaultPassword());
@@ -73,6 +81,14 @@ public class AdminService {
     public void deleteClerk(UUID id) {
         User clerk = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Clerk not found"));
+
+        auditLogService.log(
+                "DELETE_CLERK",
+                getCurrentAdminEmail(),
+                "CLERK",
+                "Deleted clerk account for " + clerk.getFullName() + " (" + clerk.getEmail() + ")"
+        );
+
         userRepository.delete(clerk);
     }
 
@@ -96,5 +112,15 @@ public class AdminService {
                 .status(user.getStatus() != null ? user.getStatus().name() : null)
                 .cooperativeName(user.getCooperative() != null ? user.getCooperative().getName() : null)
                 .build();
+    }
+
+    // Reads the currently authenticated admin's email from the security context.
+    private String getCurrentAdminEmail() {
+        Object principal = org.springframework.security.core.context.SecurityContextHolder
+                .getContext().getAuthentication().getPrincipal();
+        if (principal instanceof User user) {
+            return user.getEmail();
+        }
+        return "unknown";
     }
 }
