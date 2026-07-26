@@ -17,6 +17,8 @@ public interface FarmerRepository extends JpaRepository<Farmer, UUID> {
 
     Optional<Farmer> findByPhone(String phone);
 
+    Optional<Farmer> findByUser_Id(UUID userId);
+
     boolean existsByNationalId(String nationalId);
 
     boolean existsByPhone(String phone);
