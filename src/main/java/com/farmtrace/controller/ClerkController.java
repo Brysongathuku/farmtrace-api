@@ -1,8 +1,10 @@
 package com.farmtrace.controller;
 
 import com.farmtrace.dto.response.ApiResponse;
+import com.farmtrace.dto.response.CollectionCenterResponse;
 import com.farmtrace.dto.response.FarmerResponse;
 import com.farmtrace.model.User;
+import com.farmtrace.service.CollectionCenterService;
 import com.farmtrace.service.FarmerManagementService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -20,6 +22,7 @@ import java.util.UUID;
 public class ClerkController {
 
     private final FarmerManagementService farmerManagementService;
+    private final CollectionCenterService collectionCenterService;
 
     @GetMapping("/farmers/pending")
     public ResponseEntity<List<FarmerResponse>> getPendingFarmers(@AuthenticationPrincipal User currentUser) {
@@ -44,5 +47,11 @@ public class ClerkController {
             @AuthenticationPrincipal User currentUser) {
         farmerManagementService.rejectFarmer(id, currentUser, reason);
         return ResponseEntity.ok(new ApiResponse("Farmer rejected."));
+    }
+
+    @GetMapping("/collection-centers")
+    public ResponseEntity<List<CollectionCenterResponse>> getMyCollectionCenters(
+            @AuthenticationPrincipal User currentUser) {
+        return ResponseEntity.ok(collectionCenterService.getMyCollectionCenters(currentUser));
     }
 }
