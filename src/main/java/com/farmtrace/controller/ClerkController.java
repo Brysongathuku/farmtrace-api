@@ -5,10 +5,12 @@ import com.farmtrace.dto.response.ApiResponse;
 import com.farmtrace.dto.response.CollectionCenterResponse;
 import com.farmtrace.dto.response.DeliveryResponse;
 import com.farmtrace.dto.response.FarmerResponse;
+import com.farmtrace.dto.response.GradePriceResponse;
 import com.farmtrace.model.User;
 import com.farmtrace.service.CollectionCenterService;
 import com.farmtrace.service.DeliveryService;
 import com.farmtrace.service.FarmerManagementService;
+import com.farmtrace.service.GradePriceService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -29,6 +31,7 @@ public class ClerkController {
     private final FarmerManagementService farmerManagementService;
     private final CollectionCenterService collectionCenterService;
     private final DeliveryService deliveryService;
+    private final GradePriceService gradePriceService;
 
     @GetMapping("/farmers/pending")
     public ResponseEntity<List<FarmerResponse>> getPendingFarmers(@AuthenticationPrincipal User currentUser) {
@@ -73,5 +76,10 @@ public class ClerkController {
     public ResponseEntity<List<DeliveryResponse>> getDeliveriesByCollectionCenter(
             @RequestParam UUID collectionCenterId) {
         return ResponseEntity.ok(deliveryService.getDeliveriesByCollectionCenter(collectionCenterId));
+    }
+
+    @GetMapping("/grade-prices")
+    public ResponseEntity<List<GradePriceResponse>> getCurrentPrices() {
+        return ResponseEntity.ok(gradePriceService.getCurrentPrices());
     }
 }
