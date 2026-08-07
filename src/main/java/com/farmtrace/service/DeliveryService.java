@@ -33,6 +33,7 @@ public class DeliveryService {
     private final GradePriceService gradePriceService;
     private final ReceiptNumberService receiptNumberService;
     private final AuditLogService auditLogService;
+    private final BatchService batchService;
 
     public DeliveryResponse recordDelivery(RecordDeliveryRequest request, User clerk) {
         Farmer farmer = farmerRepository.findById(request.getFarmerId())
@@ -73,6 +74,12 @@ public class DeliveryService {
 
         Delivery saved = deliveryRepository.save(delivery);
 
+        // Only approved produce is physically bagged — rejected deliveries
+        // never reach a batch.
+        if (saved.getStatus() == DeliveryStatus.APPROVED) {
+            batchService.allocateDelivery(saved);
+        }
+
         auditLogService.log(
                 request.getStatus() == DeliveryStatus.APPROVED ? "APPROVE_DELIVERY" : "REJECT_DELIVERY",
                 clerk.getEmail(),
@@ -95,7 +102,15 @@ public class DeliveryService {
                 .collect(Collectors.toList());
     }
 
-    public List<DeliveryResponse> getDeliveriesByCollectionCenter(UUID collectionCenterId) {
+    public List<DeliveryResponse> getDeliveriesByCollectionCenter(UUID collectionCenterId, User clerk) {
+        CollectionCenter center = collectionCenterRepository.findById(collectionCenterId)
+                .orElseThrow(() -> new ResourceNotFoundException("Collection center not found"));
+
+        if (clerk.getCooperative() == null
+                || !center.getCooperative().getId().equals(clerk.getCooperative().getId())) {
+            throw new ForbiddenException("You can only view deliveries within your own cooperative");
+        }
+
         return deliveryRepository.findByCollectionCenter_IdOrderByDeliveryTimestampDesc(collectionCenterId).stream()
                 .map(DeliveryResponse::from)
                 .collect(Collectors.toList());
