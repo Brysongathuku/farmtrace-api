@@ -33,6 +33,7 @@ public class BatchService {
     private final BatchAllocationRepository batchAllocationRepository;
     private final BatchNumberService batchNumberService;
     private final CollectionCenterRepository collectionCenterRepository;
+    private final AuditLogService auditLogService;
 
     /**
      * Allocates an approved delivery's full quantity into the current open
@@ -45,9 +46,7 @@ public class BatchService {
      * same transaction and has not yet been committed — a separate
      * transaction cannot see it yet, so a foreign key insert against
      * delivery_id would fail. Sharing the transaction means the delivery and
-     * its batch allocation(s) commit together atomically, and if anything
-     * here fails, the delivery save rolls back too rather than leaving an
-     * orphaned/uncounted delivery.
+     * its batch allocation(s) commit together atomically.
      */
     @Transactional
     public void allocateDelivery(Delivery delivery) {
@@ -109,15 +108,37 @@ public class BatchService {
         return batchAllocationRepository.findByBatch_Id(batchId);
     }
 
-    // Admin-only action across any cooperative — deliberately no cooperative
-    // guard here, matching how other admin endpoints work.
+    /**
+     * Marks a FULL batch as DISPATCHED — called by a clerk at the collection
+     * center when the truck actually collects the bags. Cooperative-scoped
+     * like the read methods above, and audit-logged since dispatch is a
+     * meaningful milestone worth an accountability trail.
+     */
     @Transactional
-    public Batch markDispatched(UUID batchId) {
-        Batch batch = batchRepository.findById(batchId)
-                .orElseThrow(() -> new ResourceNotFoundException("Batch not found"));
+    public Batch markDispatched(UUID batchId, User clerk) {
+        Batch batch = getBatchOrThrow(batchId, clerk); // enforces the cooperative guard
+
+        if (batch.getStatus() == BatchStatus.DISPATCHED) {
+            throw new com.farmtrace.exception.BadRequestException("This batch has already been dispatched");
+        }
+        if (batch.getStatus() == BatchStatus.OPEN) {
+            throw new com.farmtrace.exception.BadRequestException(
+                    "This batch is still open and cannot be dispatched until it is full");
+        }
+
         batch.setStatus(BatchStatus.DISPATCHED);
         batch.setDispatchedAt(LocalDateTime.now());
-        return batchRepository.save(batch);
+        Batch saved = batchRepository.save(batch);
+
+        auditLogService.log(
+                "DISPATCH_BATCH",
+                clerk.getEmail(),
+                "BATCH",
+                "Batch " + saved.getBatchNumber() + " (" + saved.getCurrentWeightKg() + "kg, Grade "
+                        + saved.getGrade() + ") dispatched from " + saved.getCollectionCenter().getName()
+        );
+
+        return saved;
     }
 
     private CollectionCenter requireOwnCooperativeCenter(UUID collectionCenterId, User clerk) {

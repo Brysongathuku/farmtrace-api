@@ -109,4 +109,12 @@ public class ClerkController {
         List<BatchAllocation> allocations = batchService.getAllocationsForBatch(id, currentUser);
         return ResponseEntity.ok(BatchResponse.from(batch, allocations));
     }
+
+    @PatchMapping("/batches/{id}/dispatch")
+    public ResponseEntity<BatchResponse> dispatchBatch(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal User currentUser) {
+        Batch batch = batchService.markDispatched(id, currentUser);
+        return ResponseEntity.ok(BatchResponse.from(batch));
+    }
 }
