@@ -13,7 +13,6 @@ import com.farmtrace.repository.BatchRepository;
 import com.farmtrace.repository.CollectionCenterRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
@@ -38,12 +37,19 @@ public class BatchService {
     /**
      * Allocates an approved delivery's full quantity into the current open
      * batch(es) for its collection center + grade, spilling into a new batch
-     * whenever the current one fills up. Must run in its own transaction
-     * (REQUIRES_NEW) so the pessimistic lock below is scoped tightly and
-     * released as soon as this delivery's allocation is done — not held for
-     * the entire recordDelivery() call.
+     * whenever the current one fills up.
+     *
+     * Deliberately runs in the SAME transaction as the caller (default
+     * REQUIRED propagation), not REQUIRES_NEW. The delivery row this method
+     * references was just saved by DeliveryService.recordDelivery() in that
+     * same transaction and has not yet been committed — a separate
+     * transaction cannot see it yet, so a foreign key insert against
+     * delivery_id would fail. Sharing the transaction means the delivery and
+     * its batch allocation(s) commit together atomically, and if anything
+     * here fails, the delivery save rolls back too rather than leaving an
+     * orphaned/uncounted delivery.
      */
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Transactional
     public void allocateDelivery(Delivery delivery) {
         BigDecimal remaining = delivery.getQuantityKg();
 
