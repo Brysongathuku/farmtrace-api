@@ -1,5 +1,6 @@
 package com.farmtrace.enums;
 
 public enum Grade {
-    A, B, C
+    GRADE_1,
+    GRADE_2
 }
