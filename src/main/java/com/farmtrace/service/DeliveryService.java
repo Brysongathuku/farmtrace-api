@@ -1,6 +1,7 @@
 package com.farmtrace.service;
 
 import com.farmtrace.dto.request.RecordDeliveryRequest;
+import com.farmtrace.dto.response.DeliveryBatchInfoResponse;
 import com.farmtrace.dto.response.DeliveryResponse;
 import com.farmtrace.enums.DeliveryStatus;
 import com.farmtrace.exception.BadRequestException;
@@ -10,6 +11,7 @@ import com.farmtrace.model.CollectionCenter;
 import com.farmtrace.model.Delivery;
 import com.farmtrace.model.Farmer;
 import com.farmtrace.model.User;
+import com.farmtrace.repository.BatchAllocationRepository;
 import com.farmtrace.repository.CollectionCenterRepository;
 import com.farmtrace.repository.DeliveryRepository;
 import com.farmtrace.repository.FarmerRepository;
@@ -34,6 +36,7 @@ public class DeliveryService {
     private final ReceiptNumberService receiptNumberService;
     private final AuditLogService auditLogService;
     private final BatchService batchService;
+    private final BatchAllocationRepository batchAllocationRepository;
 
     public DeliveryResponse recordDelivery(RecordDeliveryRequest request, User clerk) {
         Farmer farmer = farmerRepository.findById(request.getFarmerId())
@@ -76,8 +79,10 @@ public class DeliveryService {
 
         // Only approved produce is physically bagged — rejected deliveries
         // never reach a batch.
+        List<DeliveryBatchInfoResponse> batchInfo = null;
         if (saved.getStatus() == DeliveryStatus.APPROVED) {
             batchService.allocateDelivery(saved);
+            batchInfo = getBatchInfoForDelivery(saved.getId());
         }
 
         auditLogService.log(
@@ -90,7 +95,7 @@ public class DeliveryService {
                                 ? " — rejected: " + request.getRejectionReason() : "")
         );
 
-        return DeliveryResponse.from(saved);
+        return DeliveryResponse.from(saved, batchInfo);
     }
 
     public List<DeliveryResponse> getMyFarmerDeliveries(UUID userId) {
@@ -98,7 +103,7 @@ public class DeliveryService {
                 .orElseThrow(() -> new ResourceNotFoundException("Farmer not found"));
 
         return deliveryRepository.findByFarmer_IdOrderByDeliveryTimestampDesc(farmer.getId()).stream()
-                .map(DeliveryResponse::from)
+                .map(d -> DeliveryResponse.from(d, getBatchInfoForDelivery(d.getId())))
                 .collect(Collectors.toList());
     }
 
@@ -112,7 +117,13 @@ public class DeliveryService {
         }
 
         return deliveryRepository.findByCollectionCenter_IdOrderByDeliveryTimestampDesc(collectionCenterId).stream()
-                .map(DeliveryResponse::from)
+                .map(d -> DeliveryResponse.from(d, getBatchInfoForDelivery(d.getId())))
+                .collect(Collectors.toList());
+    }
+
+    private List<DeliveryBatchInfoResponse> getBatchInfoForDelivery(UUID deliveryId) {
+        return batchAllocationRepository.findByDelivery_Id(deliveryId).stream()
+                .map(DeliveryBatchInfoResponse::from)
                 .collect(Collectors.toList());
     }
 }

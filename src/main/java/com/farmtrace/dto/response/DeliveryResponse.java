@@ -8,6 +8,7 @@ import lombok.Data;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Data
@@ -37,7 +38,17 @@ public class DeliveryResponse {
 
     private LocalDateTime deliveryTimestamp;
 
+    // Which batch(es) this delivery's produce was allocated into — a list
+    // because a single delivery can split across two bags if it overflows
+    // the current one's remaining capacity. Empty/null for rejected
+    // deliveries, which are never batched.
+    private List<DeliveryBatchInfoResponse> batches;
+
     public static DeliveryResponse from(Delivery d) {
+        return from(d, null);
+    }
+
+    public static DeliveryResponse from(Delivery d, List<DeliveryBatchInfoResponse> batches) {
         return DeliveryResponse.builder()
                 .id(d.getId())
                 .receiptNumber(d.getReceiptNumber())
@@ -56,6 +67,7 @@ public class DeliveryResponse {
                 .status(d.getStatus())
                 .rejectionReason(d.getRejectionReason())
                 .deliveryTimestamp(d.getDeliveryTimestamp())
+                .batches(batches)
                 .build();
     }
 }
