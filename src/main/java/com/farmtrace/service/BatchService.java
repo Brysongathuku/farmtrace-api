@@ -109,10 +109,13 @@ public class BatchService {
     }
 
     /**
-     * Marks a FULL batch as DISPATCHED — called by a clerk at the collection
-     * center when the truck actually collects the bags. Cooperative-scoped
-     * like the read methods above, and audit-logged since dispatch is a
-     * meaningful milestone worth an accountability trail.
+     * Marks a batch as DISPATCHED — called by a clerk at the collection
+     * center when the truck actually collects the bags. Allowed from either
+     * OPEN or FULL, since a batch doesn't always fill to exactly 200kg
+     * before it needs to leave (end of day, last collection before a truck
+     * arrives, etc.) — only blocked if it's already been dispatched.
+     * Cooperative-scoped like the read methods above, and audit-logged
+     * since dispatch is a meaningful milestone worth an accountability trail.
      */
     @Transactional
     public Batch markDispatched(UUID batchId, User clerk) {
@@ -120,10 +123,6 @@ public class BatchService {
 
         if (batch.getStatus() == BatchStatus.DISPATCHED) {
             throw new com.farmtrace.exception.BadRequestException("This batch has already been dispatched");
-        }
-        if (batch.getStatus() == BatchStatus.OPEN) {
-            throw new com.farmtrace.exception.BadRequestException(
-                    "This batch is still open and cannot be dispatched until it is full");
         }
 
         batch.setStatus(BatchStatus.DISPATCHED);
@@ -134,8 +133,9 @@ public class BatchService {
                 "DISPATCH_BATCH",
                 clerk.getEmail(),
                 "BATCH",
-                "Batch " + saved.getBatchNumber() + " (" + saved.getCurrentWeightKg() + "kg, Grade "
-                        + saved.getGrade() + ") dispatched from " + saved.getCollectionCenter().getName()
+                "Batch " + saved.getBatchNumber() + " (" + saved.getCurrentWeightKg() + "kg / "
+                        + saved.getCapacityKg() + "kg, Grade " + saved.getGrade() + ") dispatched from "
+                        + saved.getCollectionCenter().getName()
         );
 
         return saved;
